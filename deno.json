@@ -1,0 +1,15 @@
+{
+  "name": "@rntgspr/google-chat-deno",
+  "version": "0.1.0",
+  "exports": "./src/main.ts",
+  "desktop": {
+    "app": {
+      "name": "Google Chat Deno",
+      "identifier": "com.rntgspr.google-chat-deno"
+    },
+    "backend": "cef",
+    "output": {
+      "macos": "./dist/GoogleChatDeno.app"
+    }
+  }
+}

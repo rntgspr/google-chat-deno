@@ -1,0 +1,10 @@
+# build output
+/dist/
+*.app
+
+# runtime logs
+*.log
+
+.claude
+CLAUDE.md
+session.md
