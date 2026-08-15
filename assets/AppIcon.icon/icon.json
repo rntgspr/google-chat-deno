@@ -1,0 +1,63 @@
+{
+  "fill" : {
+    "linear-gradient" : [
+      "display-p3:0.50000,0.84985,0.71524,1.00000",
+      "display-p3:0.24803,0.62765,0.25492,1.00000"
+    ]
+  },
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "blend-mode" : "normal",
+          "fill" : "none",
+          "glass-specializations" : [
+            {
+              "appearance" : "light",
+              "value" : true
+            }
+          ],
+          "hidden" : false,
+          "image-name" : "google-chat-deno-light.png",
+          "name" : "google-chat-deno-light",
+          "position" : {
+            "scale" : 0.87,
+            "translation-in-points" : [
+              -18.270000000000095,
+              9.595000000000027
+            ]
+          }
+        },
+        {
+          "blend-mode" : "multiply",
+          "fill" : {
+            "solid" : "srgb:0.00000,0.00000,0.00000,0.43944"
+          },
+          "glass" : true,
+          "hidden" : false,
+          "image-name" : "google-chat-deno-light.png",
+          "name" : "google-chat-deno-light",
+          "opacity" : 0.55,
+          "position" : {
+            "scale" : 0.87,
+            "translation-in-points" : [
+              -18.270000000000095,
+              16.595000000000027
+            ]
+          }
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.3
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "squares" : "shared"
+  }
+}

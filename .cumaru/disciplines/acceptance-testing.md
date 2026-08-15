@@ -2,6 +2,7 @@
 human_revised: false
 name: acceptance-testing
 applies-when: a plan is implemented and about to close; verifying its acceptance criteria with evidence before archive
+strictness: 10/10
 source:
   plugin: xhyqaq/superpowers-plus
   skill: acceptance-testing

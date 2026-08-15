@@ -1,15 +1,35 @@
 {
   "name": "@rntgspr/google-chat-deno",
-  "version": "0.1.0",
-  "exports": "./src/main.ts",
+  "version": "0.0.1",
+  "exports": "./src/app.ts",
+  "compilerOptions": {
+    "lib": [
+      "deno.window",
+      "deno.desktop"
+    ]
+  },
+  "lint": {},
   "desktop": {
     "app": {
       "name": "Google Chat Deno",
-      "identifier": "com.rntgspr.google-chat-deno"
+      "identifier": "com.rntgspr.google-chat-deno",
+      "icons": {
+        "macos": "./assets/GoogleChat.icns"
+      }
     },
     "backend": "cef",
     "output": {
-      "macos": "./dist/GoogleChatDeno.app"
+      "macos": "./dist/GoogleChatDeno"
     }
+  },
+  "imports": {
+    "@/": "./src/"
+  },
+  "fmt": {
+    "useTabs": false,
+    "indentWidth": 2,
+    "newLineKind": "lf",
+    "semiColons": false,
+    "lineWidth": 120
   }
 }

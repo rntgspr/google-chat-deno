@@ -7,36 +7,28 @@ summary: Framework guidance for SDLC Light domain (simplified software-developme
 <!-- cumaru:components -->
 | Link | Description |
 |------|-------------|
-| [host](../src/main.ts) | The Deno host process: window creation, the local server that satisfies the runtime's boot contract, the probe loop, and the `bind` bridge. |
-| [probe](../src/probe.js) | Page-side script, evaluated inside Google Chat: reads page identity and landmarks, installs the notification wrapper, reports back through a binding. |
-| [launcher](../run.sh) | Shell launcher that gives CEF a durable browser profile by symlinking its pid-named temp directory before `exec`. |
-| [bundle](../deno.json) | The `desktop` block: app identity, CEF backend, and per-platform output paths. |
+| [host](../src/app.ts) | Deno orchestration for the boot server and main Chat window. |
+| [launcher](../run.sh) | Development and packaged launch scripts that attach CEF to a durable browser profile. |
+| [bundle](../deno.json) | Desktop package identity, CEF backend, permissions, output path, and macOS application assets. |
 <!-- /cumaru:components -->
 
 <!-- cumaru:root -->
-**What this is.** A proof of concept: can `deno desktop` host the Google Chat web client the
-way the Electron wrapper at `../google-chat-electron` does? Not a rewrite — a set of answers to
-the questions that decide whether a rewrite is worth attempting.
+**What this is.** A macOS Google Chat desktop wrapper built with experimental `deno desktop` and
+the CEF backend. The host opens the remote Chat application and preserves the Google session through
+a launcher-managed CEF profile.
 
-**Verdict so far — viable, with one unsolved blocker.** Chat loads and runs, sign-in is not
-blocked, the session survives restarts, the host/page bridge works against a remote origin, and
-`window.Notification` can be patched. The blocker is that the runtime exposes **no navigation
-interception**, so the Electron original's external-links guard — an allowlist deciding what may
-open inside the window carrying the Google session — has nowhere to live.
+**Current architecture.** `src/app.ts` starts the local boot-contract server and creates one Chat
+window. Chat owns attachment discovery and loading; the dedicated Laufey build embeds a CEF version
+that follows redirected image subresources natively.
 
-**What it buys.** No user-agent disguise (the default UA is clean and consistent), Chromium 149
-instead of Electron 21's 106, one-command cross-compiled signed bundles instead of three CI
-workflows, and an explicit permission model.
+**Known platform constraint.** CEF still exposes no navigation interception equivalent to
+Electron's window-open policy.
 
-**What it costs.** ~307 MB per bundle, an experimental runtime that warns it may change, a
-session-persistence workaround built on an undocumented internal path, and no passkey/WebAuthn.
+**Stack.** Deno 2.9.6, `deno desktop`, a dedicated Laufey 0.7.0 build, CEF/Chromium 150, and
+TypeScript. The currently configured bundle target is macOS.
 
-**Stack.** Deno 2.9.5, `deno desktop` with the CEF backend (`laufey` 0.6.1), TypeScript, no
-framework. macOS arm64 only so far.
-
-**Testing note.** Everything recorded under `specs/` was verified by running it, not read from
-documentation — the published docs cover locally-served content and are silent on most of what
-this project needs.
+**Commit messages.** Commits follow the Gitmoji convention. Any emoji available on macOS MAY be
+used instead of a catalogued Gitmoji when it meaningfully communicates the commit's intent.
 <!-- /cumaru:root -->
 
 # SDLC Light domain (simplified software-development workflow)
@@ -108,11 +100,14 @@ traversal starts from those nodes, nothing else.
 Framework-shipped conduct for *how* work is done — distinct from the
 pillars, which hold *what* the project is. Every modular file in `disciplines/`
 is loaded at context start; `applies-when:` controls when its rules apply,
-never whether its body is loaded. Each file carries a `strictness:` (0–10,
-where 10 = inflexible/always, 0 = fully optional).
+never whether its body is loaded. `disciplines/index.md` defines how
+`strictness:` controls required consideration.
 
 | Discipline | Applies when | File |
 |---|---|---|
+| cumaru-first | repository work can benefit from a relevant Cumaru surface | `disciplines/cumaru-first.md` |
+| code-comments | code or related artifacts are written, edited, reviewed, refactored, or documented where comments may be affected | `disciplines/code-comments.md` |
+| engineering | performing software engineering work or reporting technical results | `disciplines/engineering.md` |
 | verification | about to claim work complete; before commit / PR / handoff | `disciplines/verification.md` |
 | systematic-debugging | a bug / test failure / unexpected behavior — before fixing | `disciplines/systematic-debugging.md` |
 | test-driven-development | implementing a feature or bugfix, before writing code | `disciplines/test-driven-development.md` |
@@ -122,7 +117,6 @@ where 10 = inflexible/always, 0 = fully optional).
 | kiss | choosing how to implement, when a simpler option exists | `disciplines/kiss.md` |
 | yagni | tempted to build beyond a present, stated requirement | `disciplines/yagni.md` |
 | solid | designing / refactoring structure — responsibilities, extension, coupling | `disciplines/solid.md` |
-| code-comments | writing any code comment, or deciding whether an explanation belongs in code or in domain prose | `disciplines/code-comments.md` |
 | blast-radius | fixing scope:/files: for a change whose reach the spec graph doesn't already describe | `disciplines/blast-radius.md` |
 
 ## Domain context (web/software)

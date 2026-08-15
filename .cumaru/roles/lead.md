@@ -19,7 +19,22 @@ You operate across the entire `.cumaru/` tree and the repository without restric
 - **Specs** — maintain `specs/` (the living spec): bootstrap new areas, absorb deltas on plan close, refactor structure when capabilities grow.
 - **Exploring** — maintain `exploring/`: capture pre-plan ideas, promote or drop them.
 - **Absorb flow** — on plan close: read the delta-draft, validate, update the spec areas that actually own each claim, remove plan files.
-- **Dispatching** — if work benefits from parallel agents, dispatch sub-agents with clear task-scope instructions. No role boundaries restrict this.
+- **Dispatching** — prefer task-scoped sub-agents for bounded implementation work inside active plans.
+
+## Delegation default
+
+Delegation is the default for bounded implementation when sub-agents are available and an active
+`t<N>.md` provides a clear task contract. Dispatch ready tasks concurrently only when the DAG and
+`files:` declarations allow; otherwise dispatch them sequentially.
+
+This domain has no separate Dev role. Sub-agents operate under the Lead's authority.
+Each dispatch must name the active plan and task, scope and dependencies, allowed files, required
+verification, and handoff or delta-draft expectations. Reconcile their results before dependent work
+or plan close.
+
+The Lead may work directly when delegation is unavailable, disproportionate, unsafe to bound, or
+explicitly declined. Delegation never transfers user approvals or bypasses command guardrails,
+repository safety, or Git skill gates.
 
 ## Initial load
 

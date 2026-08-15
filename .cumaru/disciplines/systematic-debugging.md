@@ -2,6 +2,7 @@
 human_revised: false
 name: systematic-debugging
 applies-when: a bug, test failure, or unexpected behavior surfaces; before proposing or writing a fix
+strictness: 9/10
 source:
   plugin: obra/superpowers
   skill: systematic-debugging

@@ -53,6 +53,8 @@ A node's `index.md` states the directory's purpose and rules. The filesystem is 
 
 The LLM loads only what is **declared** — never by filesystem proximity. The schema declares contracts and semantic links; the filesystem supplies candidates through `cumaru tree`. Loading is a **guided traversal**, not a bulk read: the structure proposes candidates and the LLM prunes them by relevance to the task. The structure proposes; the LLM disposes.
 
+**Bootstrap and priority.** Every context receives this kernel, `domain.md`, `disciplines/index.md`, and every installed discipline before the root candidate projection. The discipline index defines required consideration: `strictness:` controls how aggressively each `applies-when:` must be evaluated, while `applies-when:` controls application, never loading. Apply every matching discipline. Evaluate `cumaru-first` first whenever repository work could use Cumaru navigation, workflows, semantic tags, coverage, health checks, lifecycle, update, migration, or guarded `.cumaru/` operations; it chooses an existing surface and creates no second loading mechanism.
+
 1. **A role is on duty.** The role declares which directory index(es) enter context to begin. An index explains purpose and rules; drilling into candidates is a separate, deliberate act.
 2. **The task fixes a subject.** Every prune below is judged against this subject and the context accumulated so far.
 3. **Expand the current directory.** Read its `index.md`, run `cumaru tree <directory>`, and combine the resulting shallow candidates with fields and tags declared by the selected domain (for example `depends-on`, `relates`, or a vault graph field). Each candidate carries a one-line `summary:` and resolves to either another indexed directory or a leaf file.
@@ -72,6 +74,7 @@ The CLI reads and mutates this tree. `tree` performs the expansion step above; `
 | Command | What it does |
 |---|---|
 | `cumaru tree [<dir>]` | Lists a directory's candidates and their `summary:` without loading any body. |
+| `cumaru map [<path>]` | Lists level-two headings and line numbers under a directory or in one exact Markdown file. |
 | `cumaru flow <src> <verb> [<dst>]` | Creates, moves, copies, or removes files inside `.cumaru/` under guardrails. |
 | `cumaru tag get\|set <file> <tag>` | Reads or replaces a `<!-- cumaru:NAME -->` body. Schema-validated; the body is adopter data. |
 | `cumaru doctor` | Validates the tree: indexes, summaries, markers, references, tools, agent adapter. |

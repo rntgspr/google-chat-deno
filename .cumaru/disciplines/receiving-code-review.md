@@ -2,6 +2,7 @@
 human_revised: false
 name: receiving-code-review
 applies-when: acting on code-review feedback, especially when a comment seems unclear or technically questionable
+strictness: 8/10
 source:
   plugin: obra/superpowers
   skill: receiving-code-review

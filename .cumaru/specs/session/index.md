@@ -1,74 +1,84 @@
 ---
 human_revised: false
 name: session
-summary: Why the CEF profile is thrown away on every launch, and the launcher that redirects it to a durable directory so the Google session survives.
+summary: Durable Google session storage through launcher-managed symlinks to Laufey's pid-scoped CEF profile.
 depends-on: [specs/runtime]
-relates: [specs/chat-host]
+relates: [specs/chat-host, specs/runtime/bootstrap]
 apps: [launcher, host]
 ---
 
 # Session
 
-A chat client that demands a full Google login on every launch is not usable, so durable
-browser state is a precondition for this project rather than a refinement.
+## Overview
 
-The CEF backend stores its entire browser profile — cookies, local storage, the lot — in
+Laufey stores its CEF profile under `$TMPDIR/laufey_cef_<pid>/`. Without intervention every launch
+uses a new process identifier and therefore a new profile, losing Google cookies and local storage.
+The runtime and desktop configuration expose no supported cache/profile-path option, and Chromium's
+`--user-data-dir` is overwritten by Laufey.
 
-```
-$TMPDIR/laufey_cef_<pid>/
-```
+Both source and packaged launchers preserve the session by watching for the Laufey process and
+creating a pid-named symlink to
+`~/Library/Application Support/com.rntgspr.google-chat-deno/cef`. This is intentionally outside the
+host process because CEF initializes storage before application code can redirect it.
 
-A new pid on every launch means a new empty profile on every launch, inside a directory the
-operating system also reclaims on its own schedule. This is the backend's behavior, not a
-misconfiguration: there is no cache-path, profile, or storage option in `deno.json`, in the
-documentation, or anywhere in the binary's strings.
+## Launcher behavior
 
-## The launcher
+The development launcher starts its watcher before `deno desktop --hmr`. The actual CEF process is a
+child created after compilation, so its pid cannot be derived from the shell or predicted safely.
+The launcher enables the Deno inspector at `127.0.0.1:$INSPECTOR_PORT` only when `--inspector` is
+its first argument; otherwise it neither enables nor advertises the inspector. Remaining arguments
+continue to the application after the launcher consumes that option.
+The packaged launcher similarly starts a watcher, then uses `open -n -W` to launch the `.app`; the
+Laufey binary inside that bundle owns the profile pid.
 
-The path is unusable as configuration but perfectly predictable as a *name* — the pid is the
-process's own. Creating the symlink from inside the application loses a race, because CEF
-initializes its profile before any user code runs. Doing it from a shell wrapper wins, because
-`$$` is the shell's pid and **`exec` replaces the process while keeping that pid**: the link
-already exists when the binary starts.
-
-```sh
-mkdir -p "$DURABLE"
-rm -rf "${TMPDIR}laufey_cef_$$"
-ln -s "$DURABLE" "${TMPDIR}laufey_cef_$$"
-exec "$APP"
-```
-
-CEF writes through the link without noticing. Verified: 3.6 MB of profile data landed in the
-durable directory, `Default/Cookies` among it, and a restart came back signed in — Chat rendered
-at t+30s with no login prompt.
+Each watcher polls every 10 ms for at most 6,000 iterations. Before launch, stale pid symlinks older
+than 120 minutes are removed. Development and packaged launches point to the same durable profile
+and therefore cannot safely run concurrently.
 
 ## Requirements (EARS / RFC 2119)
 
-- The application MUST be launched through the wrapper; launching the binary directly gets a throwaway profile and loses the session.
-- The wrapper MUST create the symlink before `exec`, and MUST name it with its own pid.
-- The durable profile MUST live outside `$TMPDIR`, since the OS reclaims that directory.
-- WHEN the ephemeral path already exists THE SYSTEM SHALL remove it before linking.
-- The application MUST be compiled with permission to read `HOME` / `TMPDIR` and to write the durable directory.
+- The application MUST be launched through `dev.sh` or `run.sh` when its Google session must persist.
+- The durable profile MUST live outside `$TMPDIR` under the application identifier's support
+  directory.
+- A launcher MUST start its Laufey process watcher before starting the desktop runtime or app bundle.
+- The watcher MUST derive the profile link name from the observed Laufey pid rather than the shell
+  pid.
+- Stale pid symlinks SHALL be swept before every launch.
+- The development launcher MUST pass `--hmr` and the configured entrypoint to `deno desktop`.
+- WHEN `dev.sh` is invoked with `--inspector` as its first argument THE SYSTEM SHALL enable the Deno
+  inspector at `127.0.0.1:$INSPECTOR_PORT`.
+- WHEN `dev.sh` is invoked without `--inspector` THE SYSTEM SHALL NOT enable or advertise the Deno
+  inspector.
+- WHEN the development launcher consumes `--inspector` THE SYSTEM SHALL preserve all remaining
+  application arguments.
+- The packaged launcher MUST open a new app instance and wait for it to terminate.
+- A distributed release MUST include executable `run.sh` beside `dist/` and MUST direct users to launch through it so
+  the durable profile contract is preserved.
+- Development and packaged instances MUST NOT run simultaneously against the shared profile.
 
 ## Decisions
 
-- The durable profile lives at `~/Library/Application Support/com.rntgspr.google-chat-deno/cef`, matching where a macOS app is expected to keep its data and keyed to the bundle identifier declared in `deno.json`.
-- The symlink is created by a shell wrapper rather than by the host process, because only the pre-`exec` position wins the race against CEF's own initialization. This was measured, not assumed: the in-process attempt failed with `File exists`, and CEF was already writing to the temp directory by the time user code ran.
+- 2026-09-04: Use the same process-watcher strategy for development and packaged launch because both
+  paths ultimately place CEF in a Laufey process whose pid is not available before launch.
+- 2026-09-04: Keep the profile under macOS Application Support and key it by the bundle identifier.
 
 ## Known gaps
 
-- **This is a workaround against an undocumented internal path.** If `deno desktop` renames the directory, drops the pid suffix, or moves the profile, sessions start silently vanishing again with no error to point at. Any runtime upgrade must re-verify it.
-- The right fix is upstream: a cache-path option on the CEF backend. Until that exists, the wrapper is load-bearing and cannot be dropped.
-- The `webview` backend persists correctly on its own — `~/Library/WebKit/<bundle-id>/` plus a `.binarycookies` file — and needs no wrapper at all. It is unusable for a different reason; see [chat-host](../chat-host/index.md).
+- The profile directory naming convention is undocumented and may change without warning.
+- The watcher races CEF initialization. Losing the race silently creates an empty profile and
+  presents a login screen.
+- Laufey single-instance behavior reports profile contention as exit code 24 rather than a clear
+  lock error.
 
 ## Files
 
-Single-concern area.
+Single-concern area. Split development and packaged launch only if their profile strategies diverge.
 
 ## Reference
 
 <!-- cumaru:reference -->
 | Link | Description |
 |------|-------------|
-| [run.sh](run.sh) | Creates the pid-named symlink to the durable profile, then `exec`s the app. |
+| [packaged launcher](run.sh) | Watches for packaged Laufey, links its pid profile, and waits for the app. |
+| [development launcher](dev.sh) | Watches for the compiled Laufey child and runs the source entrypoint with HMR. |
 <!-- /cumaru:reference -->

@@ -2,6 +2,7 @@
 human_revised: false
 name: verification
 applies-when: about to claim work is complete, fixed, or passing; before a commit, PR, or handoff
+strictness: 10/10
 source:
   plugin: obra/superpowers
   skill: verification-before-completion

@@ -1,0 +1,284 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      candidate_tag:
+        description: Draft tag matching v<version>-rc.<number>
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}-${{ inputs.candidate_tag }}
+  cancel-in-progress: false
+
+env:
+  CEF_VERSION: "150.0.14"
+  DENO_VERSION: "v2.9.6"
+  LAUFEY_ASSET: laufey-cef-aarch64-apple-darwin.tar.gz
+  LAUFEY_REPOSITORY: rntgspr/laufey
+  LAUFEY_TAG: v0.7.1-cef_150
+  RELEASE_TARGET: aarch64-apple-darwin
+  XCODE_DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+
+jobs:
+  release:
+    name: Build macOS arm64 release
+    runs-on: macos-26
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Resolve and protect the release identity
+        id: release
+        env:
+          CANDIDATE_TAG: ${{ inputs.candidate_tag }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          version=$(jq -r '.version' deno.json)
+          final_tag="v${version}"
+
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            release_tag="$CANDIDATE_TAG"
+            draft=true
+            prerelease=true
+
+            if [[ ! "$release_tag" =~ ^v${version//./\.}-rc\.[0-9]+$ ]]; then
+              echo "::error::Candidate tag must match ${final_tag}-rc.<number>"
+              exit 1
+            fi
+          else
+            release_tag="$GITHUB_REF_NAME"
+            draft=false
+            prerelease=false
+
+            if [[ "$release_tag" != "$final_tag" ]]; then
+              echo "::error::Tag $release_tag does not match deno.json version $final_tag"
+              exit 1
+            fi
+          fi
+
+          if gh api "/repos/${GITHUB_REPOSITORY}/releases/tags/${release_tag}" --silent; then
+            echo "::error::Release $release_tag already exists; refusing to replace its assets"
+            exit 1
+          fi
+
+          echo "tag=$release_tag" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "draft=$draft" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: ${{ env.DENO_VERSION }}
+
+      - name: Select the pinned macOS toolchain
+        run: |
+          set -euo pipefail
+
+          sudo xcode-select --switch "$XCODE_DEVELOPER_DIR"
+
+          [[ "$(uname -m)" == "arm64" ]]
+          [[ "$(xcodebuild -version | head -n 1)" == "Xcode 26.6" ]]
+          [[ "$(deno --version | head -n 1)" == "deno 2.9.6 (stable, release, aarch64-apple-darwin)" ]]
+
+      - name: Download and verify the pinned Laufey runtime
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          download_dir="$RUNNER_TEMP/laufey-release"
+          runtime_root="$RUNNER_TEMP/laufey-runtime"
+          release_dir="$runtime_root/cef/build/Release"
+
+          mkdir -p "$download_dir" "$release_dir"
+
+          gh release download "$LAUFEY_TAG" \
+            --repo "$LAUFEY_REPOSITORY" \
+            --pattern "$LAUFEY_ASSET" \
+            --pattern SHA256SUMS \
+            --dir "$download_dir"
+
+          [[ -f "$download_dir/$LAUFEY_ASSET" ]]
+          [[ -f "$download_dir/SHA256SUMS" ]]
+
+          checksum=$(awk -v asset="$LAUFEY_ASSET" '$2 == asset || $2 == "*" asset {print $1; exit}' "$download_dir/SHA256SUMS")
+          [[ -n "$checksum" ]]
+
+          actual_checksum=$(shasum -a 256 "$download_dir/$LAUFEY_ASSET" | awk '{print $1}')
+          [[ "$actual_checksum" == "$checksum" ]]
+
+          tar -xzf "$download_dir/$LAUFEY_ASSET" -C "$release_dir"
+
+          app="$release_dir/laufey.app"
+          framework="$app/Contents/Frameworks/Chromium Embedded Framework.framework"
+
+          [[ -x "$app/Contents/MacOS/laufey" ]]
+          [[ -d "$framework" ]]
+          [[ -L "$framework/Versions/Current" ]]
+          [[ "$(lipo -archs "$app/Contents/MacOS/laufey")" == *arm64* ]]
+
+          for helper in \
+            "laufey Helper" \
+            "laufey Helper (Alerts)" \
+            "laufey Helper (GPU)" \
+            "laufey Helper (Plugin)" \
+            "laufey Helper (Renderer)"; do
+            [[ -x "$app/Contents/Frameworks/$helper.app/Contents/MacOS/$helper" ]]
+          done
+
+          echo "LAUFEY_DEV_DIR=$runtime_root" >> "$GITHUB_ENV"
+
+      - name: Build the Chat bundle
+        run: |
+          set -euo pipefail
+
+          ./build.sh
+
+      - name: Validate the Chat bundle
+        id: bundle
+        run: |
+          set -euo pipefail
+
+          app="dist/GoogleChatDeno.app"
+          framework="$app/Contents/Frameworks/Chromium Embedded Framework.framework"
+          strict_log="$RUNNER_TEMP/codesign-strict.log"
+
+          [[ -x "$app/Contents/MacOS/laufey" ]]
+          [[ -f "$app/Contents/MacOS/laufey.dylib" ]]
+          [[ -f "$app/Contents/Resources/Assets.car" ]]
+          [[ -f "$app/Contents/Resources/AppIcon.icns" ]]
+          [[ -d "$framework" ]]
+          [[ -L "$framework/Versions/Current" ]]
+          [[ "$(lipo -archs "$app/Contents/MacOS/laufey")" == *arm64* ]]
+          [[ "$(lipo -archs "$app/Contents/MacOS/laufey.dylib")" == *arm64* ]]
+
+          for helper in \
+            "laufey Helper" \
+            "laufey Helper (Alerts)" \
+            "laufey Helper (GPU)" \
+            "laufey Helper (Plugin)" \
+            "laufey Helper (Renderer)"; do
+            [[ -x "$app/Contents/Frameworks/$helper.app/Contents/MacOS/$helper" ]]
+          done
+
+          codesign --verify --deep "$app"
+
+          if codesign --verify --deep --strict "$app" 2>"$strict_log"; then
+            strict_status="PASS"
+          elif [[ -L "$framework/Versions/A/A" ]] \
+            && [[ "$(readlink "$framework/Versions/A/A")" == "A" ]] \
+            && grep -q "No such file or directory" "$strict_log"; then
+            strict_status="KNOWN FAILURE: CEF contains the self-referencing Versions/A/A -> A symlink"
+          else
+            cat "$strict_log"
+            exit 1
+          fi
+
+          echo "strict_status=$strict_status" >> "$GITHUB_OUTPUT"
+
+      - name: Package the release candidate
+        id: package
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+          STRICT_STATUS: ${{ steps.bundle.outputs.strict_status }}
+        run: |
+          set -euo pipefail
+
+          package_name="GoogleChatDeno-v${RELEASE_VERSION}-${RELEASE_TARGET}"
+          package_root="$RUNNER_TEMP/package/$package_name"
+          release_dir="$GITHUB_WORKSPACE/release"
+          asset_name="${package_name}.tar.gz"
+
+          mkdir -p "$package_root/dist" "$release_dir"
+          cp -a dist/GoogleChatDeno.app "$package_root/dist/"
+          install -m 755 run.sh "$package_root/run.sh"
+
+          cat > "$package_root/RELEASE-METADATA.txt" <<EOF
+          Chat tag: $RELEASE_TAG
+          Chat version: $RELEASE_VERSION
+          Laufey tag: $LAUFEY_TAG
+          Deno version: ${DENO_VERSION#v}
+          Embedded CEF version: $CEF_VERSION
+          Target: $RELEASE_TARGET
+          Signing: ad-hoc
+          Notarization: not notarized
+          Strict signature verification: $STRICT_STATUS
+          Launch: extract this archive and run ./run.sh from the extracted directory
+          EOF
+
+          COPYFILE_DISABLE=1 tar -czf "$release_dir/$asset_name" -C "$RUNNER_TEMP/package" "$package_name"
+
+          pushd "$release_dir" >/dev/null
+          shasum -a 256 "$asset_name" > SHA256SUMS
+          shasum -a 256 --check SHA256SUMS
+          popd >/dev/null
+
+          verify_dir="$RUNNER_TEMP/package-verification"
+          mkdir -p "$verify_dir"
+          tar -xzf "$release_dir/$asset_name" -C "$verify_dir"
+
+          verified_root="$verify_dir/$package_name"
+          verified_framework="$verified_root/dist/GoogleChatDeno.app/Contents/Frameworks/Chromium Embedded Framework.framework"
+
+          [[ -x "$verified_root/run.sh" ]]
+          [[ -x "$verified_root/dist/GoogleChatDeno.app/Contents/MacOS/laufey" ]]
+          [[ -L "$verified_framework/Versions/Current" ]]
+
+          cat > "$release_dir/release-notes.md" <<EOF
+          ## Runtime pairing
+
+          - Chat tag: \`$RELEASE_TAG\`
+          - Chat version: \`$RELEASE_VERSION\`
+          - Laufey tag: \`$LAUFEY_TAG\`
+          - Deno version: \`${DENO_VERSION#v}\`
+          - Embedded CEF version: \`$CEF_VERSION\`
+          - Target: \`$RELEASE_TARGET\`
+
+          ## Distribution status
+
+          - Signing: ad-hoc
+          - Notarization: not notarized
+          - Strict signature verification: $STRICT_STATUS
+
+          Extract the archive and run \`./run.sh\` from its root so the durable Google session profile is preserved.
+          EOF
+
+          echo "asset=$asset_name" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.package.outputs.asset }}
+          path: |
+            release/${{ steps.package.outputs.asset }}
+            release/SHA256SUMS
+            release/release-notes.md
+          if-no-files-found: error
+
+      - name: Create the GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ steps.release.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: Google Chat Deno ${{ steps.release.outputs.tag }}
+          body_path: release/release-notes.md
+          draft: ${{ steps.release.outputs.draft }}
+          prerelease: ${{ steps.release.outputs.prerelease }}
+          make_latest: ${{ github.event_name == 'push' }}
+          fail_on_unmatched_files: true
+          files: |
+            release/${{ steps.package.outputs.asset }}
+            release/SHA256SUMS

@@ -1,3 +1,5 @@
+.DS_Store
+
 # build output
 /dist/
 *.app
@@ -6,5 +8,6 @@
 *.log
 
 .claude
+.agents
+.codex
 CLAUDE.md
-session.md

@@ -2,6 +2,7 @@
 human_revised: false
 name: test-driven-development
 applies-when: implementing any feature or bugfix, before writing implementation code
+strictness: 9/10
 source:
   plugin: obra/superpowers
   skill: test-driven-development

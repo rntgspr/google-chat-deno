@@ -30,7 +30,6 @@
 
 version: 7
 domain: sdlc-light
-agent: claude # null = generic .agents/ integration; or claude, codex, opencode
 # ------------------------------------------------------------------
 # rules — cross-cutting, not specific to any single pillar.
 # ------------------------------------------------------------------
@@ -92,10 +91,9 @@ meta:
   apps:
     values:
       # === project components ===
-      - host        # main.ts — the Deno host process
-      - probe       # probe.js — page-side script
-      - launcher    # run.sh — durable-profile launcher
-      - bundle      # deno.json — desktop block / packaging
+      - host # main.ts — the Deno host process
+      - launcher # run.sh — durable-profile launcher
+      - bundle # deno.json — desktop block / packaging
       # === reserved (do not remove) ===
       - platform
       - meta
@@ -116,8 +114,11 @@ meta:
     # fnmatch-style globs (`*` crosses `/`) narrowing which tracked files
     # count as coverable source. Empty = every tracked file. .cumaru/ and
     # .agents/ are always excluded.
-    source: []
-    # - "src/**"
+    source:
+      - "src/**"
+      - "*.sh"
+      - "deno.json"
+      - "assets/**"
   compatibility:
     framework_version_field: framework-version
     framework_version_location: .cumaru/index.md
