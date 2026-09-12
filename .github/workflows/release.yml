@@ -26,6 +26,8 @@ env:
   LAUFEY_TAG: v0.7.1-cef_150
   RELEASE_TARGET: aarch64-apple-darwin
   XCODE_DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+  MACOS_SIGNING_IDENTITY: GoogleChatDeno Release Signing
+  MACOS_SIGNING_DIRECTORY: google-chat-release-signing
 
 jobs:
   release:
@@ -141,11 +143,54 @@ jobs:
 
           echo "LAUFEY_DEV_DIR=$runtime_root" >> "$GITHUB_ENV"
 
+      - name: Import the release signing identity
+        env:
+          MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          MACOS_KEYCHAIN_PASSWORD: ${{ secrets.MACOS_KEYCHAIN_PASSWORD }}
+        run: |
+          set +x
+          set -euo pipefail
+          umask 077
+
+          : "${MACOS_CERTIFICATE_P12:?Missing MACOS_CERTIFICATE_P12}"
+          : "${MACOS_CERTIFICATE_PASSWORD:?Missing MACOS_CERTIFICATE_PASSWORD}"
+          : "${MACOS_KEYCHAIN_PASSWORD:?Missing MACOS_KEYCHAIN_PASSWORD}"
+
+          signing_dir="$RUNNER_TEMP/$MACOS_SIGNING_DIRECTORY"
+          keychain_path="$signing_dir/signing.keychain-db"
+          certificate_path="$signing_dir/certificate.p12"
+          mkdir -m 700 "$signing_dir"
+          echo "MACOS_SIGNING_KEYCHAIN=$keychain_path" >> "$GITHUB_ENV"
+
+          printf '%s' "$MACOS_CERTIFICATE_P12" | base64 --decode > "$certificate_path"
+          security create-keychain -p "$MACOS_KEYCHAIN_PASSWORD" "$keychain_path"
+          security set-keychain-settings -lut 21600 "$keychain_path"
+          security unlock-keychain -p "$MACOS_KEYCHAIN_PASSWORD" "$keychain_path"
+          security import "$certificate_path" -P "$MACOS_CERTIFICATE_PASSWORD" \
+            -t cert -f pkcs12 -k "$keychain_path" -T /usr/bin/codesign >/dev/null
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s \
+            -k "$MACOS_KEYCHAIN_PASSWORD" "$keychain_path" >/dev/null
+          rm -f "$certificate_path"
+
       - name: Build the Chat bundle
         run: |
           set -euo pipefail
 
           ./build.sh
+
+      - name: Remove temporary signing credentials
+        if: ${{ always() }}
+        run: |
+          set -euo pipefail
+
+          signing_dir="$RUNNER_TEMP/$MACOS_SIGNING_DIRECTORY"
+          keychain_path="$signing_dir/signing.keychain-db"
+          trap 'rm -rf -- "$signing_dir"' EXIT
+
+          if [[ -f "$keychain_path" ]]; then
+            security delete-keychain "$keychain_path"
+          fi
 
       - name: Validate the Chat bundle
         id: bundle
@@ -214,7 +259,7 @@ jobs:
           Deno version: ${DENO_VERSION#v}
           Embedded CEF version: $CEF_VERSION
           Target: $RELEASE_TARGET
-          Signing: ad-hoc
+          Signing: self-signed
           Notarization: not notarized
           Strict signature verification: $STRICT_STATUS
           Launch: extract this archive and run ./run.sh from the extracted directory
@@ -250,7 +295,7 @@ jobs:
 
           ## Distribution status
 
-          - Signing: ad-hoc
+          - Signing: self-signed
           - Notarization: not notarized
           - Strict signature verification: $STRICT_STATUS
 
