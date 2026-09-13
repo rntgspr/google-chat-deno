@@ -171,6 +171,7 @@ jobs:
             -t cert -f pkcs12 -k "$keychain_path" -T /usr/bin/codesign >/dev/null
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s \
             -k "$MACOS_KEYCHAIN_PASSWORD" "$keychain_path" >/dev/null
+          security list-keychains -d user -s "$keychain_path"
           rm -f "$certificate_path"
 
       - name: Build the Chat bundle
