@@ -48,7 +48,7 @@ Laufey/CEF profile, and launch behavior. No credential-architecture change belon
 |------|-------|--------|-----------|
 | [T1](t1.md) | Map the existing deployment integration | done | — |
 | [T2](t2.md) | Provision the production signing identity | done | T1 |
-| [T3](t3.md) | Integrate signing into the release workflow | in-progress | T2 |
+| [T3](t3.md) | Integrate signing into the release workflow | done | T2 |
 | [T4](t4.md) | Install the released application | pending | T3 |
 
 ## Out of scope

@@ -2,9 +2,9 @@
 human_revised: false
 plan: maintenance-stable-macos-code-signing
 task: T3
-status: partial
+status: complete
 date: 2026-09-12
-summary: Persistent release signing is published on the work branch and its authorized GitHub Actions candidate run is in progress.
+summary: Persistent signing succeeded in GitHub Actions, temporary credentials were removed, and signed draft candidate v0.0.1-rc.1 is ready for installation.
 ---
 
 # Hand-off — maintenance-stable-macos-code-signing / T3
@@ -16,8 +16,8 @@ summary: Persistent release signing is published on the work branch and its auth
 |------|-------------|
 | [Build script](../../../build.sh) | Added explicit inside-out signing with the CI identity and retained local ad-hoc builds. |
 | [Release workflow](../../../.github/workflows/release.yml) | Added temporary signing credential import and cleanup and updated signing metadata. |
-| [Plan](index.md) | Marked T3 in progress. |
-| [T3](t3.md) | Recorded implementation progress. |
+| [Plan](index.md) | Marked T3 done. |
+| [T3](t3.md) | Recorded completion and linked the release evidence. |
 <!-- /cumaru:touched -->
 
 ## Decisions made during implementation
@@ -43,7 +43,6 @@ summary: Persistent release signing is published on the work branch and its auth
 
 - Reviewed the implementation diff and confirmed there are no whitespace errors.
 - Confirmed the remote already has the dispatchable Release workflow and no existing releases.
-- GitHub Actions production execution and its resulting artifact are pending.
 - Implementation commit: 05b071c on maintenance-stable-macos-code-signing. The working branch includes
   the user's existing local baseline commit 51b619e and the signing work; main was not advanced.
 - Following explicit user authorization, the branch was pushed and candidate v0.0.1-rc.1 was dispatched.
@@ -52,11 +51,34 @@ summary: Persistent release signing is published on the work branch and its auth
   succeeded. The import step omitted registering the Keychain in the runner user's search list,
   which the codesign manual requires even when an explicit Keychain selects the signing identity.
   Added that runner-only registration before repeating the candidate.
+- The corrected run completed successfully: [Actions run 34727864638](https://github.com/rntgspr/google-chat-deno/actions/runs/34727864638),
+  source commit 148f3f496360f49913fd16da680abc9ebdeccad3. Import, build/signing, temporary-credential
+  cleanup, existing bundle validation, packaging, artifact upload, and draft release creation succeeded.
+- The unchanged existing strict signature check reported PASS. No additional tests or cross-build
+  validation were introduced or run; manual app installation remains T4.
+- Release metadata identifies self-signed signing and no notarization. The uploaded package contains
+  the app and launcher; private credential paths remain confined to the separately cleaned runner directory.
+
+## Installation artifact
+
+| Field | Value |
+|-------|-------|
+| Candidate | v0.0.1-rc.1 |
+| Release state | Draft prerelease |
+| Release | [GitHub draft](https://github.com/rntgspr/google-chat-deno/releases/tag/untagged-ae7208153a5b82dd7966) |
+| Package | GoogleChatDeno-v0.0.1-aarch64-apple-darwin.tar.gz |
+| Size | 147481883 bytes |
+| SHA256 | 56ade47ac7866e32b37b874e34350f4f281a35dd35b017fdf139a29c3c9abfe3 |
+| Companion asset | SHA256SUMS |
+| Branch | maintenance-stable-macos-code-signing |
+
+Both release assets report uploaded. Access to the draft requires an authorized GitHub account.
+Extract the package and use its run.sh launcher for the existing durable-profile behavior.
 
 ## Pending / follow-ups
 
-- Record the actual workflow result, cleanup outcome, and candidate artifact before marking T3 done.
 - T4 installs the resulting app; no installation or cross-release credential continuity is claimed here.
+- The implementation branch is published; main has not been merged or advanced by this task.
 
 ## Suggestions for the Lead
 
