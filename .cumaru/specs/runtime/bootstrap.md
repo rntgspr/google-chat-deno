@@ -57,7 +57,8 @@ to Google Chat.
 - The bundle MUST retain the compiled ICNS fallback for older supported macOS releases. The standalone light and
   dark PNGs remain branding sources rather than independently selected bundle appearances.
 - The build script MUST compile `src/app.ts` with a suffix-free macOS output base, remove stale canonical and
-  duplicated-suffix bundles, patch the icon name, and ad-hoc sign the single resulting `.app` bundle.
+  duplicated-suffix bundles, patch the icon name, and sign the single resulting `.app` bundle; local builds MAY
+  retain ad-hoc signing while official releases MUST use the persistent self-signed identity provisioned outside CI.
 - The desktop configuration, build script, and packaged launcher MUST resolve one canonical macOS application bundle
   path.
 - The build output MUST NOT contain a duplicated `.app.app` suffix.
@@ -70,8 +71,14 @@ to Google Chat.
   the checksum and architecture, and MUST NOT compile Laufey or download CEF independently.
 - A release archive MUST include the complete Chat application bundle, executable packaged launcher,
   runtime-pairing metadata, and a portable checksum manifest while preserving executable modes and symlinks.
-- Release metadata MUST describe signing and notarization accurately; ad-hoc signing MUST NOT be represented as
-  Developer ID signing or notarization.
+- Release metadata MUST describe self-signed official signing and the absence of notarization accurately; local
+  ad-hoc builds MUST NOT be represented as Developer ID signing or notarization.
+- Official macOS releases MUST reuse the persistent self-signed Code Signing identity provisioned outside CI,
+  importing it into a temporary GitHub Actions runner Keychain for each release.
+- The release workflow MUST sign the assembled `GoogleChatDeno.app`, including its embedded Laufey executable,
+  helper applications, framework, and libraries, before packaging, then remove temporary signing credentials.
+- The release workflow MUST keep the signing certificate, private key, passwords, and temporary Keychain outside
+  source control, logs, artifacts, and release archives.
 - Manual release dispatch MUST create a draft prerelease candidate, while a final release MUST require a tag matching
   the version in `deno.json` and MUST refuse to replace an existing release.
 
