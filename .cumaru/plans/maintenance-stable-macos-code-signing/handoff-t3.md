@@ -4,7 +4,7 @@ plan: maintenance-stable-macos-code-signing
 task: T3
 status: partial
 date: 2026-09-12
-summary: Persistent release signing is implemented with runner-only credential import and cleanup, pending the GitHub Actions release candidate.
+summary: Persistent release signing is published on the work branch and its authorized GitHub Actions candidate run is in progress.
 ---
 
 # Hand-off — maintenance-stable-macos-code-signing / T3
@@ -44,10 +44,17 @@ summary: Persistent release signing is implemented with runner-only credential i
 - Reviewed the implementation diff and confirmed there are no whitespace errors.
 - Confirmed the remote already has the dispatchable Release workflow and no existing releases.
 - GitHub Actions production execution and its resulting artifact are pending.
+- Implementation commit: 05b071c on maintenance-stable-macos-code-signing. The working branch includes
+  the user's existing local baseline commit 51b619e and the signing work; main was not advanced.
+- Following explicit user authorization, the branch was pushed and candidate v0.0.1-rc.1 was dispatched.
+  Run: https://github.com/rntgspr/google-chat-deno/actions/runs/34727753380.
+- The first run imported the identity successfully but signing reported no identity found; cleanup
+  succeeded. The import step omitted registering the Keychain in the runner user's search list,
+  which the codesign manual requires even when an explicit Keychain selects the signing identity.
+  Added that runner-only registration before repeating the candidate.
 
 ## Pending / follow-ups
 
-- Push the implementation branch and dispatch candidate v0.0.1-rc.1.
 - Record the actual workflow result, cleanup outcome, and candidate artifact before marking T3 done.
 - T4 installs the resulting app; no installation or cross-release credential continuity is claimed here.
 
