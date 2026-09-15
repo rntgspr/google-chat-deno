@@ -1,7 +1,7 @@
 {
   "name": "@rntgspr/google-chat-deno",
   "version": "0.0.2",
-  "exports": "./src/app.ts",
+  "exports": "./src/app/index.ts",
   "compilerOptions": {
     "lib": [
       "deno.window",

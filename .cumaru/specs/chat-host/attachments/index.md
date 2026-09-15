@@ -45,7 +45,7 @@ Single concern file. Add implementation references only if the application regai
 
 | Link                               | Description                                                               |
 | ---------------------------------- | ------------------------------------------------------------------------- |
-| [entrypoint](src/app.ts)           | Starts the application without attachment-specific host or probes.        |
-| [native-path test](src/app_test.ts) | Guards against restoring the removed attachment workaround in bootstrap. |
+| [entrypoint](src/app/index.ts)     | Starts the application without attachment-specific host or probes.        |
+| [native-path test](src/app/index_test.ts) | Guards against restoring the removed attachment workaround in bootstrap. |
 
 <!-- /cumaru:reference -->

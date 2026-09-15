@@ -1,4 +1,4 @@
-import logger from "@/util/logger.ts"
+import logger from "@/util/logger.js"
 import BOOTSTRAP_PAGE from "../../assets/bootstrap.html" with { type: "text" }
 
 /** Serves the bootstrap document. */

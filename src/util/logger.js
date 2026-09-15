@@ -34,11 +34,9 @@ const Levels = {
   INFO: "info",
   WARN: "warn",
   ERROR: "error",
-} as const
+}
 
-type LogLevel = (typeof Levels)[keyof typeof Levels]
-
-const Colors: Record<LogLevel, string> = {
+const Colors = {
   debug: `${Dim}${FgGreen}`,
   trace: `${Dim}${FgCyan}`,
   info: `${FgCyan}`,
@@ -50,7 +48,7 @@ const Colors: Record<LogLevel, string> = {
 const prefix = `gcd`
 
 /** Writes one prefixed, level-tagged line unless the browser environment is silenced. */
-function log(level: LogLevel, ...params: unknown[]): null | void {
+function log(level, ...params) {
   if (isBrowser) return null // production and demo stay silent on the frontend
 
   console.log(
@@ -61,22 +59,22 @@ function log(level: LogLevel, ...params: unknown[]): null | void {
 }
 
 const logger = {
-  log(...params: unknown[]) {
+  log(...params) {
     return log(Levels.VERBOSE, ...params)
   },
-  debug(...params: unknown[]) {
+  debug(...params) {
     return log(Levels.DEBUG, ...params)
   },
-  trace(...params: unknown[]) {
+  trace(...params) {
     return log(Levels.TRACE, ...params)
   },
-  info(...params: unknown[]) {
+  info(...params) {
     return log(Levels.INFO, ...params)
   },
-  warn(...params: unknown[]) {
+  warn(...params) {
     return log(Levels.WARN, ...params)
   },
-  error(...params: unknown[]) {
+  error(...params) {
     return log(Levels.ERROR, ...params)
   },
 }

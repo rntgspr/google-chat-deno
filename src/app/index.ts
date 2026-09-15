@@ -1,8 +1,8 @@
-import { initMain } from "@/main.ts"
+import { initMain } from "@/app/main.ts"
 import { serveBootPage } from "@/server/index.ts"
 import { CHAT_URL, RUNTIME_BOOT_MS } from "@/util/constants.ts"
 import { delay } from "@/util/delay.js"
-import logger from "@/util/logger.ts"
+import logger from "@/util/logger.js"
 
 if (import.meta.main) {
   logger.info("app::init")

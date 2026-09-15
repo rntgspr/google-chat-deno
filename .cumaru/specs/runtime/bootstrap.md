@@ -11,8 +11,8 @@ apps: [host, bundle, launcher]
 
 ## Overview
 
-`src/app.ts` is the application entrypoint. It starts a loopback HTTP server, waits briefly for the experimental desktop
-runtime, and delegates creation of the single Chat window to `src/main.ts`. The window is created directly through
+`src/app/index.ts` is the application entrypoint. It starts a loopback HTTP server, waits briefly for the experimental desktop
+runtime, and delegates creation of the single Chat window to `src/app/main.ts`. The window is created directly through
 `Deno.BrowserWindow`, receives its native menus and dimensions, waits one short construction interval, and navigates to
 Chat. Local development resolves the dedicated sibling Laufey checkout through `LAUFEY_DEV_DIR`; release builds
 point the same variable at a verified runtime extracted from the pinned Laufey release.
@@ -24,7 +24,8 @@ to Google Chat.
 
 ### Startup
 
-- The packaged and development entrypoint MUST be `src/app.ts`.
+- The packaged and development entrypoint MUST be `src/app/index.ts`.
+- The development launcher MUST default its entrypoint to `src/app/index.ts`.
 - WHEN the application starts THE SYSTEM SHALL start the boot-contract server before creating a browser window.
 - THE SYSTEM SHALL create exactly one main Chat window.
 - THE SYSTEM SHALL NOT install attachment resolver, cache, or replacement plugins.
@@ -113,16 +114,17 @@ configured.
 <!-- cumaru:reference -->
 | Link                                                   | Description                                                                                 |
 | ------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
-| [entrypoint](src/app.ts)                               | Orders boot server startup and main Chat window creation.                                   |
-| [main window](src/main.ts)                             | Creates the Chat window, menus, dimensions, and navigation target.                          |
+| [entrypoint](src/app/index.ts)                         | Orders boot server startup and main Chat window creation.                                   |
+| [main window](src/app/main.ts)                         | Creates the Chat window, menus, dimensions, and navigation target.                          |
 | [boot server](src/server/index.ts)                     | Serves the embedded loopback bootstrap document.                                            |
 | [bootstrap document](assets/bootstrap.html)            | Provides the minimal local HTML required by the measured runtime boot contract.             |
 | [desktop configuration](deno.json)                     | Defines the entrypoint export, CEF backend, app identity, icon, output, and import aliases. |
 | [build script](build.sh)                               | Compiles the appearance catalog and fallback, packages resources, and signs the bundle.                                  |
+| [development launcher](dev.sh)                         | Launches the relocated entrypoint against the durable browser profile.                      |
 | [bundle path test](tests/bundle_path_test.sh)           | Enforces the canonical output base and bundle path across configuration and scripts.         |
 | [constants](src/util/constants.ts)                     | Centralizes the Chat URL and runtime timing values.                                         |
 | [delay](src/util/delay.js)                             | Supplies the startup and window-construction waits.                                         |
-| [logger](src/util/logger.ts)                           | Emits prefixed host diagnostics while suppressing browser-side output.                      |
+| [logger](src/util/logger.js)                           | Emits prefixed host diagnostics while suppressing browser-side output.                      |
 | [macOS icon](assets/GoogleChat.icns)                   | Checked-in compiled fallback used as Deno's direct icon input.                                 |
 | [dark brand image](assets/google-chat-deno-dark.png)   | Retained dark-background application branding source.                                       |
 | [light brand image](assets/google-chat-deno-light.png) | Retained light-background application branding source.                                      |

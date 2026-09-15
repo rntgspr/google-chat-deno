@@ -1,9 +1,12 @@
 import { WINDOW_CREATION_MS } from "@/util/constants.ts"
 import { delay } from "@/util/delay.js"
-import logger from "@/util/logger.ts"
+import logger from "@/util/logger.js"
 
 /** Creates the application window and navigates it to Google Chat. */
-export async function initMain(initUrl: string, showDevtools = false): Promise<Deno.BrowserWindow> {
+export async function initMain(
+  initUrl: string,
+  showDevtools = false,
+): Promise<Deno.BrowserWindow> {
   logger.info("main::init", { initUrl })
 
   const windowId = crypto.randomUUID().slice(0, 8)

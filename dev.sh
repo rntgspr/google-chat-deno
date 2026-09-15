@@ -14,7 +14,7 @@ set -e
 
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 LAUFEY_DEV_DIR="${LAUFEY_DEV_DIR:-$SCRIPT_DIR/../laufey}"
-ENTRY="${ENTRY:-src/app.ts}"
+ENTRY="${ENTRY:-src/app/index.ts}"
 DURABLE="$HOME/Library/Application Support/com.rntgspr.google-chat-deno/cef"
 TMP="${TMPDIR:-/tmp/}"
 INSPECTOR_PORT="${INSPECTOR_PORT:-9333}"

@@ -24,7 +24,7 @@ rm -rf "$APP" "$APP.app"
 
 deno desktop \
   --allow-net \
-  src/app.ts \
+  src/app/index.ts \
   "$@"
 
 cp "$ICON_BUILD_DIR/Assets.car" "$ICON_BUILD_DIR/AppIcon.icns" "$APP/Contents/Resources/"
