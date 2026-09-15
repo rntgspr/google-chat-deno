@@ -57,7 +57,7 @@ to Google Chat.
   bundled artwork. A fresh build MUST reproduce the icon without manual cache resets or resource replacement.
 - The bundle MUST retain the compiled ICNS fallback for older supported macOS releases. The standalone light and
   dark PNGs remain branding sources rather than independently selected bundle appearances.
-- The build script MUST compile `src/app.ts` with a suffix-free macOS output base, remove stale canonical and
+- The build script MUST compile `src/app/index.ts` with a suffix-free macOS output base, remove stale canonical and
   duplicated-suffix bundles, patch the icon name, and sign the single resulting `.app` bundle; local builds MAY
   retain ad-hoc signing while official releases MUST use the persistent self-signed identity provisioned outside CI.
 - The desktop configuration, build script, and packaged launcher MUST resolve one canonical macOS application bundle
@@ -131,4 +131,5 @@ configured.
 | [Icon Composer document](assets/AppIcon.icon/icon.json) | Canonical user-approved layers, fills, and appearance settings compiled by actool. |
 | [embedded icon artwork](assets/AppIcon.icon/Assets/google-chat-deno-light.png) | Image layer embedded in the self-contained Icon Composer document. |
 | [release workflow](.github/workflows/release.yml)       | Builds guarded macOS arm64 releases from the pinned Laufey runtime artifact.       |
+| [signing identity provisioner](scripts/provision_macos_signing_identity.sh) | Creates and backs up the persistent self-signed macOS release identity, then uploads its Actions secrets. |
 <!-- /cumaru:reference -->
