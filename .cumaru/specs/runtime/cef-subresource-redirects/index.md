@@ -44,7 +44,7 @@ Chat attachment fail under CEF 149 and load natively under CEF 150.
   workarounds disabled.
 - Diagnostic use of `--disable-features=RestrictForbiddenSecurityHeaders` MUST be limited to the
   local reproduction and MUST NOT run against Chat or any authenticated profile.
-- The diagnostic flag MUST NOT be added to `run.sh`, `dev.sh`, or shipped configuration; it disables
+- The diagnostic flag MUST NOT be added to the development launcher or shipped configuration; it disables
   security validation rather than repairing CEF's redirect restart.
 - Application code MUST NOT attempt to strip the stale request headers because Laufey exposes no
   `CefResourceRequestHandler` or equivalent HTTP interception surface.

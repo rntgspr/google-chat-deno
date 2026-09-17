@@ -1,49 +1,38 @@
 ---
 human_revised: false
 name: session
-summary: Durable Google session storage through launcher-managed symlinks to Laufey's pid-scoped CEF profile.
+summary: Durable Google session storage through a bundle-provided Laufey CEF profile contract.
 depends-on: [specs/runtime]
 relates: [specs/chat-host, specs/runtime/bootstrap]
-apps: [launcher, host]
+apps: [launcher, bundle]
 ---
 
 # Session
 
 ## Overview
 
-Laufey stores its CEF profile under `$TMPDIR/laufey_cef_<pid>/`. Without intervention every launch
-uses a new process identifier and therefore a new profile, losing Google cookies and local storage.
-The runtime and desktop configuration expose no supported cache/profile-path option, and Chromium's
-`--user-data-dir` is overwritten by Laufey.
+The application stores its CEF profile at
+`~/Library/Application Support/com.rntgspr.google-chat-deno/cef`. The canonical value lives in
+`scripts/profile_env.sh`; development sources it directly, while the macOS build writes it to the
+bundle's `LSEnvironment` dictionary before signing.
 
-Both source and packaged launchers preserve the session by watching for the Laufey process and
-creating a pid-named symlink to
-`~/Library/Application Support/com.rntgspr.google-chat-deno/cef`. This is intentionally outside the
-host process because CEF initializes storage before application code can redirect it.
+Laufey reads `LAUFEY_CEF_PROFILE_PATH` before CEF initialization, expands a leading tilde with
+Foundation, and assigns the resulting absolute path to both `cache_path` and `root_cache_path`. It
+also enables session-cookie persistence for that explicit profile. Laufey retains its PID-scoped
+temporary path as a compatibility fallback when the environment variable is absent.
 
-## Launcher behavior
-
-The development launcher starts its watcher before `deno desktop --hmr`. The actual CEF process is a
-child created after compilation, so its pid cannot be derived from the shell or predicted safely.
-The launcher enables the Deno inspector at `127.0.0.1:$INSPECTOR_PORT` only when `--inspector` is
-its first argument; otherwise it neither enables nor advertises the inspector. Remaining arguments
-continue to the application after the launcher consumes that option.
-The packaged launcher similarly starts a watcher, then uses `open -n -W` to launch the `.app`; the
-Laufey binary inside that bundle owns the profile pid.
-
-Each watcher polls every 10 ms for at most 6,000 iterations. Before launch, stale pid symlinks older
-than 120 minutes are removed. Development and packaged launches point to the same durable profile
-and therefore cannot safely run concurrently.
+The packaged application is opened directly as `GoogleChatDeno.app`; no launcher wrapper or profile
+symlink watcher participates in startup. The development-only `dev.sh` launcher supplies the same
+profile contract while retaining HMR and optional inspector behavior.
 
 ## Requirements (EARS / RFC 2119)
 
-- The application MUST be launched through `dev.sh` or `run.sh` when its Google session must persist.
-- The durable profile MUST live outside `$TMPDIR` under the application identifier's support
-  directory.
-- A launcher MUST start its Laufey process watcher before starting the desktop runtime or app bundle.
-- The watcher MUST derive the profile link name from the observed Laufey pid rather than the shell
-  pid.
-- Stale pid symlinks SHALL be swept before every launch.
+- The durable profile MUST live outside `$TMPDIR` under the application identifier's Application Support directory.
+- WHEN Laufey starts with `LAUFEY_CEF_PROFILE_PATH` THE SYSTEM SHALL expand the path and use it as both the CEF cache and root cache.
+- WHEN Laufey uses an explicit persistent profile THE SYSTEM SHALL enable persistence for session cookies.
+- WHEN the macOS application launches through Launch Services THE SYSTEM SHALL receive the profile path from the signed bundle's `LSEnvironment` configuration.
+- WHEN a user relaunches the application after authentication THE SYSTEM SHALL reuse the same Google session profile.
+- The development launcher MUST pass the same explicit profile environment used by packaged builds.
 - The development launcher MUST pass `--hmr` and the configured entrypoint to `deno desktop`.
 - WHEN `dev.sh` is invoked with `--inspector` as its first argument THE SYSTEM SHALL enable the Deno
   inspector at `127.0.0.1:$INSPECTOR_PORT`.
@@ -51,34 +40,33 @@ and therefore cannot safely run concurrently.
   inspector.
 - WHEN the development launcher consumes `--inspector` THE SYSTEM SHALL preserve all remaining
   application arguments.
-- The packaged launcher MUST open a new app instance and wait for it to terminate.
-- A distributed release MUST include executable `run.sh` beside `dist/` and MUST direct users to launch through it so
-  the durable profile contract is preserved.
+- A distributed release MUST launch through `GoogleChatDeno.app` directly and MUST NOT require a wrapper script.
 - Development and packaged instances MUST NOT run simultaneously against the shared profile.
 
 ## Decisions
 
-- 2026-09-04: Use the same process-watcher strategy for development and packaged launch because both
-  paths ultimately place CEF in a Laufey process whose pid is not available before launch.
-- 2026-09-04: Keep the profile under macOS Application Support and key it by the bundle identifier.
+- 2026-09-16: Pass the profile through `LSEnvironment` because Launch Services applies it before the bundled Laufey process initializes CEF.
+- 2026-09-16: Expand tilde paths in Laufey so the plist can remain user-independent and the CEF setting is absolute.
+- 2026-09-16: Keep the profile under macOS Application Support and key it by the bundle identifier.
+- 2026-09-16: Retain Laufey's temporary PID-scoped profile only when no explicit profile environment is provided.
 
 ## Known gaps
 
-- The profile directory naming convention is undocumented and may change without warning.
-- The watcher races CEF initialization. Losing the race silently creates an empty profile and
-  presents a login screen.
 - Laufey single-instance behavior reports profile contention as exit code 24 rather than a clear
   lock error.
 
 ## Files
 
-Single-concern area. Split development and packaged launch only if their profile strategies diverge.
+Single-concern area. Split development and packaged configuration only if their profile contracts diverge.
 
 ## Reference
 
 <!-- cumaru:reference -->
 | Link | Description |
 |------|-------------|
-| [packaged launcher](run.sh) | Watches for packaged Laufey, links its pid profile, and waits for the app. |
-| [development launcher](dev.sh) | Watches for the compiled Laufey child and runs the source entrypoint with HMR. |
+| [development launcher](dev.sh) | Runs the source entrypoint with HMR and the explicit persistent profile environment. |
+| [profile environment](scripts/profile_env.sh) | Owns the canonical profile path shared by development and bundle configuration. |
+| [bundle profile configuration](scripts/configure_macos_profile.sh) | Writes the profile contract into `Info.plist` before signing. |
+| [macOS profile test](tests/macos_profile_config_test.sh) | Proves idempotent plist configuration and preservation of existing environment entries. |
+| [build script](build.sh) | Configures the profile in the application bundle before code signing. |
 <!-- /cumaru:reference -->

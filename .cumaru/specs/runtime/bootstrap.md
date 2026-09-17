@@ -58,10 +58,11 @@ to Google Chat.
 - The bundle MUST retain the compiled ICNS fallback for older supported macOS releases. The standalone light and
   dark PNGs remain branding sources rather than independently selected bundle appearances.
 - The build script MUST compile `src/app/index.ts` with a suffix-free macOS output base, remove stale canonical and
-  duplicated-suffix bundles, patch the icon name, and sign the single resulting `.app` bundle; local builds MAY
-  retain ad-hoc signing while official releases MUST use the persistent self-signed identity provisioned outside CI.
-- The desktop configuration, build script, and packaged launcher MUST resolve one canonical macOS application bundle
-  path.
+  duplicated-suffix bundles, patch the icon name and persistent profile environment, and sign the single resulting
+  `.app` bundle; local builds MAY retain ad-hoc signing while official releases MUST use the persistent self-signed
+  identity provisioned outside CI.
+- The macOS build MUST configure `LAUFEY_CEF_PROFILE_PATH` in `Info.plist` before code signing.
+- The desktop configuration and build script MUST resolve one canonical macOS application bundle path.
 - The build output MUST NOT contain a duplicated `.app.app` suffix.
 
 ### Release distribution
@@ -70,8 +71,10 @@ to Google Chat.
   architecture.
 - A release build MUST download the complete Laufey archive and checksum manifest from the pinned release, verify
   the checksum and architecture, and MUST NOT compile Laufey or download CEF independently.
-- A release archive MUST include the complete Chat application bundle, executable packaged launcher,
-  runtime-pairing metadata, and a portable checksum manifest while preserving executable modes and symlinks.
+- A release archive MUST place the complete `GoogleChatDeno.app` at its root, include runtime-pairing metadata and a
+  portable checksum manifest, preserve executable modes and symlinks, and MUST NOT include `run.sh`.
+- The release workflow MUST verify the embedded persistent profile value before publishing.
+- Release metadata MUST direct users to open `GoogleChatDeno.app` directly.
 - Release metadata MUST describe self-signed official signing and the absence of notarization accurately; local
   ad-hoc builds MUST NOT be represented as Developer ID signing or notarization.
 - Official macOS releases MUST reuse the persistent self-signed Code Signing identity provisioned outside CI,
@@ -101,7 +104,7 @@ The icon catalog contains light (`NSAppearanceNameAqua`), dark (`NSAppearanceNam
 decodes successfully, but execution on older macOS releases and separate recorded checks of Finder, Dock, and
 Cmd+Tab remain unverified.
 
-Normal and strict deep signature verification pass for bundles built from Laufey fork release `v0.7.1-cef_150`.
+Normal and strict deep signature verification pass for bundles built from Laufey fork release `v0.7.2-cef_150`.
 That published CEF 150.0.14 framework does not contain the previous self-referencing `Versions/A/A -> A` symlink.
 
 ## Files
@@ -120,8 +123,10 @@ configured.
 | [bootstrap document](assets/bootstrap.html)            | Provides the minimal local HTML required by the measured runtime boot contract.             |
 | [desktop configuration](deno.json)                     | Defines the entrypoint export, CEF backend, app identity, icon, output, and import aliases. |
 | [build script](build.sh)                               | Compiles the appearance catalog and fallback, packages resources, and signs the bundle.                                  |
+| [bundle profile configuration](scripts/configure_macos_profile.sh) | Writes the persistent Laufey profile environment before bundle signing. |
 | [development launcher](dev.sh)                         | Launches the relocated entrypoint against the durable browser profile.                      |
 | [bundle path test](tests/bundle_path_test.sh)           | Enforces the canonical output base and bundle path across configuration and scripts.         |
+| [macOS profile test](tests/macos_profile_config_test.sh) | Enforces idempotent persistent-profile configuration in `Info.plist`. |
 | [constants](src/util/constants.ts)                     | Centralizes the Chat URL and runtime timing values.                                         |
 | [delay](src/util/delay.js)                             | Supplies the startup and window-construction waits.                                         |
 | [logger](src/util/logger.js)                           | Emits prefixed host diagnostics while suppressing browser-side output.                      |

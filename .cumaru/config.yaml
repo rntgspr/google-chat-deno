@@ -92,7 +92,7 @@ meta:
     values:
       # === project components ===
       - host # main.ts — the Deno host process
-      - launcher # run.sh — durable-profile launcher
+      - launcher # dev.sh — development-only launcher
       - bundle # deno.json — desktop block / packaging
       # === reserved (do not remove) ===
       - platform

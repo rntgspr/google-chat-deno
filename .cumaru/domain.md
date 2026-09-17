@@ -8,14 +8,14 @@ summary: Framework guidance for SDLC Light domain (simplified software-developme
 | Link | Description |
 |------|-------------|
 | [host](../src/app.ts) | Deno orchestration for the boot server and main Chat window. |
-| [launcher](../run.sh) | Development and packaged launch scripts that attach CEF to a durable browser profile. |
+| [launcher](../dev.sh) | Development-only HMR launcher that supplies the persistent CEF profile environment. |
 | [bundle](../deno.json) | Desktop package identity, CEF backend, permissions, output path, and macOS application assets. |
 <!-- /cumaru:components -->
 
 <!-- cumaru:root -->
 **What this is.** A macOS Google Chat desktop wrapper built with experimental `deno desktop` and
 the CEF backend. The host opens the remote Chat application and preserves the Google session through
-a launcher-managed CEF profile.
+a bundle-configured profile consumed by Laufey before CEF initialization.
 
 **Current architecture.** `src/app.ts` starts the local boot-contract server and creates one Chat
 window. Chat owns attachment discovery and loading; the dedicated Laufey build embeds a CEF version
@@ -24,7 +24,7 @@ that follows redirected image subresources natively.
 **Known platform constraint.** CEF still exposes no navigation interception equivalent to
 Electron's window-open policy.
 
-**Stack.** Deno 2.9.6, `deno desktop`, a dedicated Laufey 0.7.0 build, CEF/Chromium 150, and
+**Stack.** Deno 2.9.6, `deno desktop`, Laufey fork release `v0.7.2-cef_150`, CEF/Chromium 150, and
 TypeScript. The currently configured bundle target is macOS.
 
 **Commit messages.** Commits follow the Gitmoji convention. Any emoji available on macOS MAY be
