@@ -18,6 +18,8 @@ agent adapters available in the workspace without including them in repository h
 
 - The ignore policy MUST use the narrowest rule that identifies each disposable artifact class.
 - The tracked tree MUST contain project-owned source, configuration, documentation, and Cumaru knowledge.
+- The repository MUST contain a root README that documents the project's purpose, supported environment, prerequisites,
+  development workflow, verification commands, build workflow, generated bundle location, and known platform limits.
 - Git MUST NOT track `.DS_Store` operating-system metadata.
 - The ignore policy MUST exclude root build output, generated application bundles, runtime logs, and
   local Claude adapter artifacts.
@@ -38,4 +40,5 @@ Repository policy files are not part of the source coverage set, so this concern
 <!-- cumaru:reference -->
 | Link | Description |
 |------|-------------|
+| [project README](README.md) | Documents the application, supported environment, development workflow, verification, and build process. |
 <!-- /cumaru:reference -->

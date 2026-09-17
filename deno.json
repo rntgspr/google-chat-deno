@@ -2,6 +2,9 @@
   "name": "@rntgspr/google-chat-deno",
   "version": "0.0.3",
   "exports": "./src/app/index.ts",
+  "tasks": {
+    "overlay:build": "deno run --allow-read --allow-write src/overlay/_build/build.ts"
+  },
   "compilerOptions": {
     "lib": [
       "deno.window",
