@@ -32,6 +32,8 @@ cp "$ICON_BUILD_DIR/Assets.car" "$ICON_BUILD_DIR/AppIcon.icns" "$APP/Contents/Re
 plutil -replace CFBundleIconName -string AppIcon "$APP/Contents/Info.plist" 2>/dev/null || \
   plutil -insert CFBundleIconName -string AppIcon "$APP/Contents/Info.plist"
 
+"$SCRIPT_DIR/scripts/configure_macos_profile.sh" "$APP"
+
 if [ -n "${MACOS_SIGNING_IDENTITY:-}${MACOS_SIGNING_KEYCHAIN:-}" ]; then
   : "${MACOS_SIGNING_IDENTITY:?Set the persistent signing identity}"
   : "${MACOS_SIGNING_KEYCHAIN:?Set the temporary signing Keychain path}"

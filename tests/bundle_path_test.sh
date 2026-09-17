@@ -21,8 +21,8 @@ if ! grep -Fqx 'rm -rf "$APP" "$APP.app"' build.sh; then
   exit 1
 fi
 
-if ! grep -Fqx "APP=\"\${APP:-$EXPECTED_BUNDLE}\"" run.sh; then
-  echo "run.sh does not default to the canonical bundle path $EXPECTED_BUNDLE" >&2
+if [ -e run.sh ]; then
+  echo "run.sh must not exist; packaged releases launch the application bundle directly" >&2
   exit 1
 fi
 
@@ -44,5 +44,10 @@ for script in build.sh dev.sh; do
     exit 1
   fi
 done
+
+if ! grep -Fq '. "$SCRIPT_DIR/scripts/profile_env.sh"' dev.sh; then
+  echo "dev.sh does not load the shared persistent profile environment" >&2
+  exit 1
+fi
 
 echo "bundle path tests passed"
